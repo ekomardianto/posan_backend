@@ -359,18 +359,17 @@ router.delete('/:id', verifyToken, requireRole('admin', 'super_admin'), async (r
     const { id } = req.params;
     const merchantId = getTenantMerchantId(req);
 
-    // Cek apakah produk sedang digunakan di order_items yang belum selesai
+    // Cek apakah produk sedang digunakan di antrean pesanan aktif (pending/processing)
     const itemCheck = await pool.query(
       `SELECT COUNT(*)::int AS count 
-       FROM order_items oi
-       JOIN orders o ON oi.order_id = o.id
-       WHERE oi.product_id = $1 AND o.status IN ('pending', 'processing', 'preparing', 'ready')`,
+       FROM transaction_items ti
+       WHERE ti.product_id = $1 AND ti.item_status IN ('pending', 'processing')`,
       [id]
     );
 
     if (itemCheck.rows[0].count > 0) {
       return res.status(409).json({
-        message: 'Produk tidak dapat dihapus karena sedang berada dalam antrean pesanan aktif.',
+        message: 'Produk tidak dapat dihapus karena sedang berada dalam antrean pesanan aktif (kitchen/barista).',
       });
     }
 
@@ -391,7 +390,7 @@ router.delete('/:id', verifyToken, requireRole('admin', 'super_admin'), async (r
     res.json({ message: `Produk "${result.rows[0].name}" berhasil dihapus dari database.` });
   } catch (error) {
     console.error('Gagal menghapus produk:', error.message);
-    res.status(500).json({ message: 'Gagal menghapus produk.' });
+    res.status(500).json({ message: error.message || 'Gagal menghapus produk.' });
   }
 });
 
