@@ -45,13 +45,18 @@ async function runTest() {
 
   try {
     // 1. Reset password for testing
-    const hash = await bcrypt.hash('admin123', 10);
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+    const superAdminPassword = process.env.SEED_SUPER_ADMIN_PASSWORD;
+    if (!adminPassword || !superAdminPassword) {
+      throw new Error('SEED_ADMIN_PASSWORD dan SEED_SUPER_ADMIN_PASSWORD wajib diatur');
+    }
+    const hash = await bcrypt.hash(adminPassword, 10);
     await pool.query("UPDATE users SET password_hash = $1 WHERE email IN ('admindago@posan.com', 'admin@posan.com', 'kasir@posan.com', 'teja@gmail.com')", [hash]);
 
     // 2. Login as Admin Utama (Merchant 1), Admin Dago (Merchant 2), Super Admin
-    const loginUtama = await makeReq('POST', '/api/auth/login', { email: 'admin@posan.com', password: 'admin123' });
-    const loginDago = await makeReq('POST', '/api/auth/login', { email: 'admindago@posan.com', password: 'admin123' });
-    const loginSA = await makeReq('POST', '/api/auth/login', { email: 'superadmin@posan.com', password: 'superadmin123' });
+    const loginUtama = await makeReq('POST', '/api/auth/login', { email: 'admin@posan.com', password: adminPassword });
+    const loginDago = await makeReq('POST', '/api/auth/login', { email: 'admindago@posan.com', password: adminPassword });
+    const loginSA = await makeReq('POST', '/api/auth/login', { email: 'superadmin@posan.com', password: superAdminPassword });
 
     console.log('Login Utama:', loginUtama.data.user?.merchant?.name, 'ID:', loginUtama.data.user?.merchant_id);
     console.log('Login Dago:', loginDago.data.user?.merchant?.name, 'ID:', loginDago.data.user?.merchant_id);

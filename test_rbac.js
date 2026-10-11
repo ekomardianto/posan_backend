@@ -68,12 +68,16 @@ async function runTests() {
     // 1. LOGIN TESTS & AUTHENTICATION AUDIT
     console.log('=== 1. TESTING LOGIN & AUTHENTICATION AUDIT ===');
     const roles = [
-      { role: 'super_admin', email: 'superadmin@posan.com', pass: 'superadmin123' },
-      { role: 'admin', email: 'admin@posan.com', pass: 'admin123' },
-      { role: 'kasir', email: 'kasir@posan.com', pass: 'kasir123' },
-      { role: 'barista', email: 'barista@posan.com', pass: 'barista123' },
-      { role: 'kitchen', email: 'kitchen@posan.com', pass: 'kitchen123' },
+      { role: 'super_admin', email: 'superadmin@posan.com', pass: process.env.SEED_SUPER_ADMIN_PASSWORD },
+      { role: 'admin', email: 'admin@posan.com', pass: process.env.SEED_ADMIN_PASSWORD },
+      { role: 'kasir', email: 'kasir@posan.com', pass: process.env.SEED_KASIR_PASSWORD },
+      { role: 'barista', email: 'barista@posan.com', pass: process.env.SEED_BARISTA_PASSWORD },
+      { role: 'kitchen', email: 'kitchen@posan.com', pass: process.env.SEED_KITCHEN_PASSWORD },
     ];
+    const testTempPassword = process.env.TEST_TEMP_PASSWORD;
+    if (roles.some((user) => !user.pass) || !testTempPassword) {
+      throw new Error('SEED_*_PASSWORD dan TEST_TEMP_PASSWORD wajib diatur sebelum menjalankan test_rbac.js');
+    }
 
     const tokens = {};
     const userProfiles = {};
@@ -204,12 +208,12 @@ async function runTests() {
     assert('Super Admin accounts are hidden from Admin Cafe staff list', !hasSAInAdminList, 'Super Admin found in Admin user list!');
 
     // Admin tries to create Super Admin -> 403 Forbidden
-    const adminCreateSA = await makeReq('POST', '/api/users', { name: 'Illegal SA', email: `sa-illegal-${Date.now()}@test.com`, password: 'password123', role: 'super_admin' }, tokens.admin);
+    const adminCreateSA = await makeReq('POST', '/api/users', { name: 'Illegal SA', email: `sa-illegal-${Date.now()}@test.com`, password: testTempPassword, role: 'super_admin' }, tokens.admin);
     assert('Admin Cafe CANNOT create Super Admin account (403 Forbidden)', adminCreateSA.status === 403, `status: ${adminCreateSA.status}`);
 
     // Admin creates Kasir, Barista, Kitchen
     const testKasirEmail = `kasir-new-${Date.now()}@posan.com`;
-    const adminCreateKasir = await makeReq('POST', '/api/users', { name: 'Kasir Shift Pagi', email: testKasirEmail, password: 'password123', role: 'kasir' }, tokens.admin);
+    const adminCreateKasir = await makeReq('POST', '/api/users', { name: 'Kasir Shift Pagi', email: testKasirEmail, password: testTempPassword, role: 'kasir' }, tokens.admin);
     assert('Admin Cafe can create Kasir account (201 Created)', adminCreateKasir.status === 201 && adminCreateKasir.data.user.id, JSON.stringify(adminCreateKasir.data));
     const newKasirId = adminCreateKasir.data?.user?.id;
 
@@ -429,15 +433,15 @@ async function runTests() {
     assert('GET /api/auth/me returns updated profile data and merchant details', checkMeAfterUpdate.status === 200 && checkMeAfterUpdate.data.user.phone === '081234567890' && checkMeAfterUpdate.data.user.role === 'admin' && checkMeAfterUpdate.data.user.merchant, JSON.stringify(checkMeAfterUpdate.data));
 
     const changePasswordRes = await makeReq('PUT', '/api/auth/change-password', {
-      current_password: 'admin123',
-      new_password: 'admin123new',
+      current_password: process.env.SEED_ADMIN_PASSWORD,
+      new_password: testTempPassword,
     }, tokens.admin);
     assert('Admin can change password via PUT /api/auth/change-password (200 OK)', changePasswordRes.status === 200, JSON.stringify(changePasswordRes.data));
 
     // Revert password back
     const revertPasswordRes = await makeReq('PUT', '/api/auth/change-password', {
-      current_password: 'admin123new',
-      new_password: 'admin123',
+      current_password: testTempPassword,
+      new_password: process.env.SEED_ADMIN_PASSWORD,
     }, tokens.admin);
     assert('Admin can revert password back (200 OK)', revertPasswordRes.status === 200, JSON.stringify(revertPasswordRes.data));
 

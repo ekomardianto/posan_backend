@@ -1,7 +1,11 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'posan_jwt_super_secret_key_2026_cafe_engine';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET wajib diatur melalui environment sebelum server dijalankan.');
+}
 
 /**
  * Middleware untuk memverifikasi JWT token

@@ -168,7 +168,18 @@ router.post('/', verifyToken, requireRole('super_admin'), async (req, res) => {
     } = req.body;
 
     if (!name || !name.trim()) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ message: 'Nama Coffee Shop wajib diisi.' });
+    }
+
+    const targetAdminEmail = adminEmail || email;
+    if (Boolean(targetAdminEmail) !== Boolean(adminPassword)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'Email dan password admin harus diisi bersamaan.' });
+    }
+    if (adminPassword && adminPassword.trim().length < 6) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'Password admin minimal 6 karakter.' });
     }
 
     const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
@@ -193,10 +204,8 @@ router.post('/', verifyToken, requireRole('super_admin'), async (req, res) => {
 
     // Buat akun Admin Cafe untuk merchant baru jika email & password diisi
     let createdAdmin = null;
-    const targetAdminEmail = adminEmail || email;
     if (targetAdminEmail && targetAdminEmail.trim()) {
-      const passwordToHash = adminPassword || 'admin123';
-      const hash = await bcrypt.hash(passwordToHash.trim(), 10);
+      const hash = await bcrypt.hash(adminPassword.trim(), 10);
       const insertUser = await client.query(
         `INSERT INTO users (name, email, password_hash, role, merchant_id, is_active)
          VALUES ($1, $2, $3, 'admin', $4, true)
