@@ -1,10 +1,10 @@
 const express = require('express');
-const pool = require('./db');
+const pool = require('../db');
 const bcrypt = require('bcryptjs');
-const authRoutes = require('./routes/authRoutes');
-const transactionRoutes = require('./routes/transactionRoutes');
-const orderRoutes = require('./routes/orderRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
+const authRoutes = require('../routes/authRoutes');
+const transactionRoutes = require('../routes/transactionRoutes');
+const orderRoutes = require('../routes/orderRoutes');
+const dashboardRoutes = require('../routes/dashboardRoutes');
 
 const app = express();
 app.use(express.json());

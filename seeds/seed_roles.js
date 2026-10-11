@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const pool = require('./db');
+const pool = require('../db');
 
 async function seedRoles() {
   console.log('=== SEEDING 5 ROLE ACCOUNTS IN posan_db ===');

@@ -5,8 +5,16 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test_rbac.js",
-    "test:rbac": "node test_rbac.js"
+    "migrate:deploy": "node migrations/run.js",
+    "seed:roles": "node seeds/seed_roles.js",
+    "seed:menu": "node seeds/seed_full_menu.js",
+    "seed:payment-config": "node seeds/seed_pm_config.js",
+    "admin:create-user": "node scripts/admin/create_new_admin.js",
+    "admin:reset-cafe2": "node scripts/admin/create_clean_cafe2_admin.js",
+    "data:update-product-photos": "node scripts/data/update_product_photos.js",
+    "test": "node tests/test_rbac.js",
+    "test:rbac": "node tests/test_rbac.js",
+    "test:multi-tenant": "node tests/test_multi_tenant_isolation.js"
   },
   "keywords": [],
   "author": "",

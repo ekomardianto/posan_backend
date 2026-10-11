@@ -1,4 +1,4 @@
-const pool = require('./db');
+const pool = require('../db');
 
 async function seedFullMenu() {
   console.log('Seeding PostgreSQL with full POS catalog...');

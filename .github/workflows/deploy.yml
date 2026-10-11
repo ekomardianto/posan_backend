@@ -85,6 +85,11 @@ jobs:
           cd /opt/posan-backend
           trap 'rm -f backend-image.tar.gz app.env.new' EXIT
 
+          if ! docker info >/dev/null 2>&1; then
+            echo "Docker tidak dapat diakses oleh user SSH ${USER}. Beri user ini akses Docker lalu jalankan ulang deploy." >&2
+            exit 1
+          fi
+
           chmod 600 app.env.new
           gzip -dc backend-image.tar.gz | docker load
 
@@ -95,6 +100,13 @@ jobs:
               exit 1
             fi
           done
+
+          # Apply the database schema before replacing the running API container.
+          docker run --rm \
+            --network host \
+            --env-file /opt/posan-backend/app.env.new \
+            -e NODE_ENV=production \
+            posan-backend:staging npm run migrate:deploy
 
           docker stop posan-backend-staging || true
           docker rm posan-backend-staging || true

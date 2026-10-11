@@ -1,4 +1,4 @@
-const pool = require('./db');
+const pool = require('../../db');
 
 async function runMultiTenantMigration() {
   console.log('=== RUNNING MULTI-TENANT (MERCHANT/COFFEESHOP) MIGRATION ===');

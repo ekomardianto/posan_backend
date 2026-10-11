@@ -1,14 +1,14 @@
 const express = require('express');
-const authRoutes = require('./routes/authRoutes');
-const categoryRoutes = require('./routes/categoryRoutes');
-const productRoutes = require('./routes/productRoutes');
-const paymentMethodRoutes = require('./routes/paymentMethodRoutes');
-const transactionRoutes = require('./routes/transactionRoutes');
-const orderRoutes = require('./routes/orderRoutes');
-const userRoutes = require('./routes/userRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
-const settingRoutes = require('./routes/settingRoutes');
-const pool = require('./db');
+const authRoutes = require('../routes/authRoutes');
+const categoryRoutes = require('../routes/categoryRoutes');
+const productRoutes = require('../routes/productRoutes');
+const paymentMethodRoutes = require('../routes/paymentMethodRoutes');
+const transactionRoutes = require('../routes/transactionRoutes');
+const orderRoutes = require('../routes/orderRoutes');
+const userRoutes = require('../routes/userRoutes');
+const dashboardRoutes = require('../routes/dashboardRoutes');
+const settingRoutes = require('../routes/settingRoutes');
+const pool = require('../db');
 
 const app = express();
 app.use(express.json());
@@ -76,7 +76,7 @@ async function runTests() {
     ];
     const testTempPassword = process.env.TEST_TEMP_PASSWORD;
     if (roles.some((user) => !user.pass) || !testTempPassword) {
-      throw new Error('SEED_*_PASSWORD dan TEST_TEMP_PASSWORD wajib diatur sebelum menjalankan test_rbac.js');
+      throw new Error('SEED_*_PASSWORD dan TEST_TEMP_PASSWORD wajib diatur sebelum menjalankan npm run test:rbac');
     }
 
     const tokens = {};
