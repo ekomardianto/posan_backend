@@ -5,12 +5,15 @@ async function seedRoles() {
   console.log('=== SEEDING 5 ROLE ACCOUNTS IN posan_db ===');
   try {
     const users = [
-      { name: 'Super Admin POSAN', email: 'superadmin@posan.com', password: 'superadmin123', role: 'super_admin' },
-      { name: 'Admin Cafe', email: 'admin@posan.com', password: 'admin123', role: 'admin' },
-      { name: 'Kasir Utama', email: 'kasir@posan.com', password: 'kasir123', role: 'kasir' },
-      { name: 'Barista POSAN', email: 'barista@posan.com', password: 'barista123', role: 'barista' },
-      { name: 'Kitchen Chef POSAN', email: 'kitchen@posan.com', password: 'kitchen123', role: 'kitchen' },
+      { name: 'Super Admin POSAN', email: 'superadmin@posan.com', password: process.env.SEED_SUPER_ADMIN_PASSWORD, role: 'super_admin' },
+      { name: 'Admin Cafe', email: 'admin@posan.com', password: process.env.SEED_ADMIN_PASSWORD, role: 'admin' },
+      { name: 'Kasir Utama', email: 'kasir@posan.com', password: process.env.SEED_KASIR_PASSWORD, role: 'kasir' },
+      { name: 'Barista POSAN', email: 'barista@posan.com', password: process.env.SEED_BARISTA_PASSWORD, role: 'barista' },
+      { name: 'Kitchen Chef POSAN', email: 'kitchen@posan.com', password: process.env.SEED_KITCHEN_PASSWORD, role: 'kitchen' },
     ];
+
+    const missingPassword = users.find((user) => !user.password);
+    if (missingPassword) throw new Error(`Password untuk role ${missingPassword.role} belum diatur di .env`);
 
     for (const u of users) {
       const existing = await pool.query('SELECT id, email, role FROM users WHERE LOWER(email) = LOWER($1)', [u.email]);

@@ -1,0 +1,12 @@
+services:
+  app:
+    image: posan-backend:local
+    build: .
+    ports:
+      - "${BACKEND_PORT:-3010}:3010"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3010

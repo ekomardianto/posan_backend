@@ -1,0 +1,111 @@
+name: Deploy POSAN Backend Staging
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: posan-backend-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          set -euo pipefail
+          docker build --pull -t posan-backend:staging .
+          docker save posan-backend:staging | gzip > /tmp/posan-backend-image.tar.gz
+
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          ping: ${{ secrets.SSH_HOST }}
+
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+
+      - name: Deploy over SSH
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          APP_ENV_CONTENT: ${{ secrets.BACKEND_ENV }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SSHPASS"
+          test -n "$APP_ENV_CONTENT"
+          test -n "$SSH_HOST"
+          test -n "$SSH_USERNAME"
+          test -n "$SSH_KNOWN_HOSTS"
+
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          umask 077
+          ENV_FILE=$(mktemp)
+          trap 'rm -f "$ENV_FILE" /tmp/posan-backend-image.tar.gz' EXIT
+          printf '%s\n' "$APP_ENV_CONTENT" > "$ENV_FILE"
+
+          sshpass -e ssh -o StrictHostKeyChecking=yes \
+            "${SSH_USERNAME}@${SSH_HOST}" \
+            'mkdir -p /opt/posan-backend && chmod 700 /opt/posan-backend'
+
+          sshpass -e scp -o StrictHostKeyChecking=yes \
+            /tmp/posan-backend-image.tar.gz \
+            "${SSH_USERNAME}@${SSH_HOST}:/opt/posan-backend/backend-image.tar.gz"
+
+          sshpass -e scp -o StrictHostKeyChecking=yes \
+            "$ENV_FILE" \
+            "${SSH_USERNAME}@${SSH_HOST}:/opt/posan-backend/app.env.new"
+
+          sshpass -e ssh -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=30 \
+            "${SSH_USERNAME}@${SSH_HOST}" 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/posan-backend
+          trap 'rm -f backend-image.tar.gz app.env.new' EXIT
+
+          chmod 600 app.env.new
+          gzip -dc backend-image.tar.gz | docker load
+
+          # Validate the new environment file before replacing the running config.
+          for key in DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD JWT_SECRET; do
+            if ! grep -Eq "^[[:space:]]*(export[[:space:]]+)?${key}[[:space:]]*=[[:space:]]*[^[:space:]#]+" app.env.new; then
+              echo "Missing required variable in BACKEND_ENV: ${key}" >&2
+              exit 1
+            fi
+          done
+
+          docker stop posan-backend-staging || true
+          docker rm posan-backend-staging || true
+          mv app.env.new app.env
+
+          docker run -d \
+            --name posan-backend-staging \
+            --network host \
+            --restart unless-stopped \
+            --env-file /opt/posan-backend/app.env \
+            -e NODE_ENV=production \
+            -e PORT=3010 \
+            posan-backend:staging
+          REMOTE

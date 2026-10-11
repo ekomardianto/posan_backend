@@ -17,7 +17,8 @@ async function createCleanCafeAdmin() {
     console.log('=== 2. BUAT SATU AKUN ADMIN KHUSUS CAFE 2 ===');
     const adminName = 'Admin POSAN Dago';
     const adminEmail = 'admindago@posan.com';
-    const adminPassword = 'admindago123';
+    const adminPassword = process.env.CAFE2_ADMIN_PASSWORD;
+    if (!adminPassword) throw new Error('CAFE2_ADMIN_PASSWORD wajib diatur di .env');
     const passwordHash = await bcrypt.hash(adminPassword, 10);
 
     const userRes = await pool.query(

@@ -5,8 +5,10 @@ async function createAdmin() {
   try {
     const name = 'Admin POSAN 2';
     const email = 'admin2@posan.com';
-    const password = 'admin12345';
+    const password = process.env.NEW_ADMIN_PASSWORD;
     const role = 'admin';
+
+    if (!password) throw new Error('NEW_ADMIN_PASSWORD wajib diatur di .env');
 
     const hash = await bcrypt.hash(password, 10);
     
