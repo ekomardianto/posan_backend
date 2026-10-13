@@ -14,6 +14,8 @@ const userRoutes = require('./routes/userRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const settingRoutes = require('./routes/settingRoutes');
 const merchantRoutes = require('./routes/merchantRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
+const inventoryRoutes = require('./routes/inventoryRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -99,6 +101,12 @@ app.use('/api/settings', settingRoutes);
 
 // API Merchant / Coffee Shop: Multi-Tenant Outlet
 app.use('/api/merchants', merchantRoutes);
+
+// API Absensi Karyawan: Presensi, Jam Kerja & Laporan
+app.use('/api/attendance', attendanceRoutes);
+
+// API Inventori Bahan Baku, Resep BOM & Stock Opname
+app.use('/api/inventory', inventoryRoutes);
 
 // Menangani endpoint yang tidak ditemukan
 app.use((req, res) => {

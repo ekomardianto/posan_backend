@@ -19,6 +19,7 @@ router.post('/login', async (req, res) => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
+    console.log(`[AUTH LOGIN ATTEMPT] email: "${cleanEmail}", password length: ${password ? password.length : 0}`);
 
     // Query user dari database PostgreSQL beserta data Coffee Shop / Merchant
     const userRes = await pool.query(
@@ -32,6 +33,7 @@ router.post('/login', async (req, res) => {
     );
 
     if (userRes.rows.length === 0) {
+      console.log(`[AUTH LOGIN FAILED] Email "${cleanEmail}" TIDAK DITEMUKAN di database PostgreSQL.`);
       return res.status(401).json({
         message: 'Email atau kata sandi tidak sesuai.',
       });
@@ -40,6 +42,7 @@ router.post('/login', async (req, res) => {
     const user = userRes.rows[0];
 
     if (!user.is_active) {
+      console.log(`[AUTH LOGIN FAILED] Akun "${cleanEmail}" dinonaktifkan.`);
       return res.status(403).json({
         message: 'Akun ini telah dinonaktifkan. Silakan hubungi Administrator.',
       });
@@ -53,7 +56,12 @@ router.post('/login', async (req, res) => {
       isMatch = false;
     }
 
-    // Fallback if plain text was stored in legacy testing
+    // Fallback 1: Cocokkan dengan PIN kasir / staf (auth_pin)
+    if (!isMatch && user.auth_pin && user.auth_pin.trim() === password.trim()) {
+      isMatch = true;
+    }
+
+    // Fallback 2: Legacy plain text password matching
     if (!isMatch && user.password_hash === password.trim()) {
       isMatch = true;
       // Re-hash password for security
@@ -62,10 +70,13 @@ router.post('/login', async (req, res) => {
     }
 
     if (!isMatch) {
+      console.log(`[AUTH LOGIN FAILED] Kata sandi tidak cocok untuk email "${cleanEmail}".`);
       return res.status(401).json({
         message: 'Email atau kata sandi tidak sesuai.',
       });
     }
+
+    console.log(`[AUTH LOGIN SUCCESS] Berhasil login: "${cleanEmail}" (Role: ${user.role}, Merchant: ${user.merchant_id})`);
 
     // Buat JWT Token aman
     const token = jwt.sign(
